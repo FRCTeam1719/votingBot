@@ -4,4 +4,7 @@ class user:
         self.canVote = canVote
         self.isAdmin = isAdmin
         self.ballot = {}
-        self.hasCastBallot = False
+        self.hasVoted = False
+
+    def __str__(self):
+        return self.dm
