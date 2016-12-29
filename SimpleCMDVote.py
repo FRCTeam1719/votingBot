@@ -57,11 +57,11 @@ class CMDVotingSystem:
         startMessage += self.__printOptions(self.template['options'])
         self.outputM(startMessage)
         pos = 1
-        finished = False
+        self.finished = False
         options = []
-        while not finished:
+        while not self.finished:
             if pos > len(self.template['options']):
-                    finished = self.__sealBallot(options)
+                    self.finished = self.__sealBallot(options)
             else:
                 cmd = self.inputM(self.__numberMapping[pos] + ' choice: ').capitalize()
                 if cmd in self.template['options']:
@@ -75,7 +75,7 @@ class CMDVotingSystem:
                         pos = 1
                         options = []
                     elif cmd == 'Seal':
-                        finished = self.__sealBallot(options)
+                        self.finished = self.__sealBallot(options)
                 else:
                      self.outputM('Bad option! Sorry!')
         self.outputM('Thanks, your ballot has been saved!')
