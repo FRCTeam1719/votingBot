@@ -50,13 +50,16 @@ class CMDVotingSystem:
     def simpleCMD(self):
         #Map the template to use standard capitalization
         self.template['options'] = list(map(lambda x: x.capitalize(), self.template['options']))
+        #Shuffle template to remove bias
+        shuffle(self.template['options'])
         startMessage = 'Welcome to the simple CMD Vote! \n' + \
             'Commands include: \n' + \
             '\t list: lists all the possible options\n' + \
             '\t reset: reset your ballot\n' + \
             '\t seal: seals & finished your ballot\n' + \
             '\t Vote by typing option,option,option\n' + \
-            '\t Ex: ' + (','.join(self.template['options']))
+            '\t I can be a little slow, (sorry!) please wait till I respond to continue. \n' + \
+            '\t Ex: ' + (','.join(self.template['options'])) + '\n'
         startMessage += self.__printOptions(self.template['options'])
         self.outputM(startMessage)
         pos = 1
@@ -93,7 +96,7 @@ class CMDVotingSystem:
                     elif cmd == 'Seal':
                         self.finished = self.__sealBallot(options)
                 else:
-                     self.outputM('Bad option! Sorry!')
+                     self.outputM('Bad option! Sorry! (You probably made a type)')
         self.outputM('Thanks, your ballot has been saved!')
 
 
