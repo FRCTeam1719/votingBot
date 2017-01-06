@@ -4,7 +4,6 @@ import os
 import sys
 import queue
 import threading
-import SlackCred
 import json
 from slackclient import SlackClient
 
@@ -18,7 +17,7 @@ except IndexError:
     exit(1)
 
 #Connect to slack
-sc = SlackClient(os.environ.get(['VOTING_BOT_TOKEN']))
+sc = SlackClient(os.environ.get('VOTE_BOT_TOKEN'))
 assert(sc.rtm_connect())
 
 #Find the bot's user ID
@@ -53,25 +52,20 @@ class ConversationThread(threading.Thread):
         userInput = queues[self.channel].get()
         return userInput['text']
 
+    def stop(self):
+        self.vote.finished = True
+        self.postMessage('Sorry, voting is over')
+
     def run(self):
-        vote = SimpleCMDVote.CMDVotingSystem(self.getInput, self.postMessage, template)
-        vote.simpleCMD()
+        self.vote = SimpleCMDVote.CMDVotingSystem(self.getInput, self.postMessage, template)
+        self.vote.simpleCMD()
         #Clean up
         alreadyVoted.append(self.channel)
-
-
-class ManagementConsole(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
 
 
 
 generalChannelId = 'C0DJMPU7L'
 #Connect to the general channel, post a message, then leave
-def makeAnnoucement(message):
-    sc.api_call('channels.join', name=generalChannelId)
-    sc.api_call('chat.postMessage', channel=generalChannelId, text=message)
-    sc.api_call('channels.leave', name=generalChannelId)
 
 
 #Dict w/ channel:thread
@@ -82,32 +76,78 @@ queues = {}
 queueLock = threading.Lock()
 #List of channels that have already voted
 alreadyVoted = []
+shouldRun = True
 
-#Message reading loop
-makeAnnoucement('Vote open, pm me to fill out a ballot')
-while True:
-    #Read from the firehouse
-    for message in filter(lambda x: (x['type'] == 'message') and ('user' in x) and (x['channel'] not in alreadyVoted), sc.rtm_read()):
-        if message['channel'] not in threadManager:
-            #We need to create a new thread to manage this conversation
-            thread = ConversationThread(message['channel'])
-            threadManager[message['channel']] = thread
-            #Init the inter-thread dictionaries
-            queues[message['channel']] = queue.Queue()
-            thread.start()
-        else:
-            #Add message to that channels queue
-            queues[message['channel']].put(message)
-    time.sleep(1)
-    #Post queued messages
-    messageQueueLock.acquire(1)
-    while not messageQueue.empty():
-        next = messageQueue.get()
-        sc.api_call('chat.postMessage', channel=next[0], text=next[1])
-    messageQueueLock.release()
-    time.sleep(1)
+class Manager(threading.Thread):
+    running = None
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.running = True
+
+    def stop(self):
+        self.running = False
+
+    def makeAnnoucement(self, message):
+        sc.api_call('channels.join', name=generalChannelId)
+        sc.api_call('chat.postMessage', channel=generalChannelId, text=message)
+        sc.api_call('channels.leave', name=generalChannelId)
+
+    def run(self):
+        #Message reading loop
+        # self.makeAnnoucement('Vote open, pm me to fill out a ballot')
+        while self.running:
+            #Read from the firehouse
+            for message in filter(lambda x: (x['type'] == 'message') and ('user' in x) and (x['channel'] not in alreadyVoted), sc.rtm_read()):
+                if message['channel'] not in threadManager:
+                    #We need to create a new thread to manage this conversation
+                    thread = ConversationThread(message['channel'])
+                    threadManager[message['channel']] = thread
+                    #Init the inter-thread dictionaries
+                    queues[message['channel']] = queue.Queue()
+                    thread.start()
+                else:
+                    #Add message to that channels queue
+                    queues[message['channel']].put(message)
+            time.sleep(1)
+            #Post queued messages
+            messageQueueLock.acquire(1)
+            while not messageQueue.empty():
+                next = messageQueue.get()
+                if next[0] == 'GENERAL':
+                    self.makeAnnoucement(next[1])
+                else:
+                    sc.api_call('chat.postMessage', channel=next[0], text=next[1])
+            messageQueueLock.release()
+            time.sleep(1)
 
 
 
-
-
+print('INIT REACHED')
+threadManagerLock.acquire(1)
+threadManager['MANAGER'] = Manager()
+threadManager['MANAGER'].start()
+threadManagerLock.release()
+print('Created manager')
+while shouldRun:
+    print('Management console active\n')
+    #Create management console
+    cmd = input('> ')
+    if 'announce' in cmd:
+        message = cmd[cmd.index('"'):cmd[::-1].index('"')]
+        messageQueueLock.acquire(1)
+        messageQueue.put(('GENERAL',message))
+        messageQueueLock.release()
+    elif cmd == 'stop':
+        threadManagerLock.acquire(1)
+        conversations = map(lambda x: x[1], filter(lambda x: x[0]!='GENERAL', threadManager.items()))
+        manager = threadManager['MANAGER']
+        threadManagerLock.release()
+        for i in conversations:
+            i.stop()
+        manager.stop()
+        manager.join()
+        shouldRun = False
+    else:
+        print('Bad Command')
+print('Exiting')
+exit(0)
