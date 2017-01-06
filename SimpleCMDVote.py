@@ -62,6 +62,10 @@ class CMDVotingSystem:
         while not finished:
             if pos > len(self.template['options']):
                     finished = self.__sealBallot(options)
+                    if not finished:
+                        options = []
+                        pos = 1
+                        self.outputM('Ballot reset to empty')
             else:
                 cmd = self.inputM(self.__numberMapping[pos] + ' choice: ').capitalize()
                 if cmd in self.template['options']:
