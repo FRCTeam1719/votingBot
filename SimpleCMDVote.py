@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import maya
+from random import shuffle
 
 
 class CMDVotingSystem:
@@ -53,17 +54,21 @@ class CMDVotingSystem:
             'Commands include: \n' + \
             '\t list: lists all the possible options\n' + \
             '\t reset: reset your ballot\n' + \
-            '\t seal: seals & finished your ballot\n'
+            '\t seal: seals & finished your ballot\n' + \
+            '\t Vote by typing option,option,option\n' + \
+            '\t Ex: ' + shuffle(','.join(self.template['options']))
         startMessage += self.__printOptions(self.template['options'])
         self.outputM(startMessage)
         pos = 1
         finished = False
+        submitted = False
         options = []
         while not finished:
-            if pos > len(self.template['options']):
+            if pos > len(self.template['options']) or submitted:
                     finished = self.__sealBallot(options)
                     if not finished:
                         options = []
+                        submitted = False
                         pos = 1
                         self.outputM('Ballot reset to empty')
             else:
@@ -71,6 +76,12 @@ class CMDVotingSystem:
                 if cmd in self.template['options']:
                     options.append(cmd)
                     pos += 1
+                elif ',' in cmd:
+                    #Break the ballot apart
+                    choices = cmd.split(',')
+                    if all(map(lambda x: x.capitalize() in self.template['options'], choices)):
+                        options = choices
+                        submitted = True
                 elif cmd in self.__commands:
                     if cmd == 'List':
                         self.__printOptions(self.template['options'])
@@ -78,6 +89,7 @@ class CMDVotingSystem:
                         self.outputM('Ballot reset to empty')
                         pos = 1
                         options = []
+                        submitted = False
                     elif cmd == 'Seal':
                         finished = self.__sealBallot(options)
                 else:
