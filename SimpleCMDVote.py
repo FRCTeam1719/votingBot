@@ -56,7 +56,7 @@ class CMDVotingSystem:
             '\t reset: reset your ballot\n' + \
             '\t seal: seals & finished your ballot\n' + \
             '\t Vote by typing option,option,option\n' + \
-            '\t Ex: ' + shuffle(','.join(self.template['options']))
+            '\t Ex: ' + (','.join(self.template['options']))
         startMessage += self.__printOptions(self.template['options'])
         self.outputM(startMessage)
         pos = 1
