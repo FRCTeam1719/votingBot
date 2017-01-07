@@ -5,6 +5,7 @@ import sys
 import queue
 import threading
 import json
+import SlackCred
 from slackclient import SlackClient
 
 #Load template data
@@ -17,7 +18,7 @@ except IndexError:
     exit(1)
 
 #Connect to slack
-sc = SlackClient(os.environ.get('VOTE_BOT_TOKEN'))
+sc = SlackClient(SlackCred.getToken())
 assert(sc.rtm_connect())
 
 #Find the bot's user ID
@@ -43,8 +44,9 @@ class ConversationThread(threading.Thread):
         messageQueue.put((self.channel,message))
         messageQueueLock.release()
 
-    def getInput(self, prompt):
-        self.postMessage(prompt)
+    def getInput(self, prompt=None):
+        if prompt:
+            self.postMessage(prompt)
         shouldRead = False
         while not shouldRead:
             shouldRead = not queues[self.channel].empty()
@@ -94,7 +96,7 @@ class Manager(threading.Thread):
 
     def run(self):
         #Message reading loop
-        # self.makeAnnoucement('Vote open, pm me to fill out a ballot')
+        self.makeAnnoucement('Vote open, pm me to fill out a ballot')
         while self.running:
             #Read from the firehouse
             for message in filter(lambda x: (x['type'] == 'message') and ('user' in x) and (x['channel'] not in alreadyVoted), sc.rtm_read()):
