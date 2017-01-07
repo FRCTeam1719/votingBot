@@ -11,6 +11,7 @@ class CMDVotingSystem:
     inputM = None
     outputM = None
     template = None
+    basePath = None
 
     __numberMapping = {
         1:'First',
@@ -24,10 +25,11 @@ class CMDVotingSystem:
     __commands = ['List', 'Reset', 'Seal']
 
 
-    def __init__(self, inputM, outputM, template):
+    def __init__(self, inputM, outputM, template, basepath='./'):
         self.inputM = inputM
         self.outputM = outputM
         self.template = template
+        self.basePath = basepath
 
 
     def __printOptions(self, options):
@@ -42,7 +44,7 @@ class CMDVotingSystem:
         if ans not in ['yes', 'y', 'Y']:
             return False
         ranked = {'ranked':ballotData}
-        filename = maya.now().iso8601().replace('.','').replace(':','') + '.json'
+        filename = self.basePath + maya.now().iso8601().replace('.','').replace(':','') + '.json'
         with open(filename, 'w') as ballot:
             ballot.write(json.dumps(ranked))
             return True
