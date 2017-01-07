@@ -52,13 +52,12 @@ class CMDVotingSystem:
         self.template['options'] = list(map(lambda x: x.capitalize(), self.template['options']))
         #Shuffle template to remove bias
         shuffle(self.template['options'])
-        startMessage = 'Welcome to the simple CMD Vote! \n' + \
+        startMessage = 'Welcome to the simple Slack Vote! \n' + \
+            'I can be a little slow, (sorry!) Please wait for me to confirm your response before sending me another one. \n' + \
             'Commands include: \n' + \
             '\t list: lists all the possible options\n' + \
             '\t reset: reset your ballot\n' + \
-            '\t seal: seals & finished your ballot\n' + \
             '\t Vote by typing option,option,option\n' + \
-            '\t I can be a little slow, (sorry!) please wait till I respond to continue. \n' + \
             '\t Ex: ' + (','.join(self.template['options'])) + '\n'
         startMessage += self.__printOptions(self.template['options'])
         self.outputM(startMessage)
@@ -66,16 +65,16 @@ class CMDVotingSystem:
         self.finished = False
         submitted = False
         options = []
-        while not finished:
+        while not self.finished:
             if pos > len(self.template['options']) or submitted:
-                    finished = self.__sealBallot(options)
-                    if not finished:
+                    self.finished = self.__sealBallot(options)
+                    if not self.finished:
                         options = []
                         submitted = False
                         pos = 1
                         self.outputM('Ballot reset to empty')
             else:
-                cmd = self.inputM(self.__numberMapping[pos] + ' choice: ').capitalize()
+                cmd = self.inputM().capitalize()
                 if cmd in self.template['options']:
                     options.append(cmd)
                     pos += 1
